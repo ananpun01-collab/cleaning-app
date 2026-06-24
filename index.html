@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ตารางเวรทำความสะอาด</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="top-bar">
+    <div class="top-bar-inner">
+      <div class="logo">🧹 เวรทำความสะอาด</div>
+      <nav class="nav-tabs">
+        <button class="nav-btn active" data-page="dashboard">ภาพรวม</button>
+        <button class="nav-btn" data-page="daily">เวรครัวรายวัน</button>
+        <button class="nav-btn" data-page="weekly">ทำความสะอาดรายสัปดาห์</button>
+        <button class="nav-btn" data-page="summary">สรุป</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <!-- DASHBOARD -->
+    <section id="page-dashboard" class="page active">
+      <!-- Dynamic date status banner -->
+      <div id="dash-status-banner"></div>
+
+      <div class="page-header" style="margin-top:12px">
+        <div>
+          <h1>ภาพรวมตารางเวร</h1>
+          <p class="subtitle" id="dash-date-display">กำลังโหลด...</p>
+        </div>
+      </div>
+
+      <!-- Alert area for overdue / pending -->
+      <div id="dash-alerts"></div>
+
+      <!-- Stat cards -->
+      <div class="dashboard-grid">
+        <div class="dash-card card-today">
+          <div class="dash-icon">🍳</div>
+          <div class="dash-label">เวรครัววันนี้</div>
+          <div id="dash-today" class="dash-value">กำลังโหลด...</div>
+        </div>
+        <div class="dash-card card-week">
+          <div class="dash-icon">🏠</div>
+          <div class="dash-label">โซนสัปดาห์นี้</div>
+          <div id="dash-week" class="dash-value">กำลังโหลด...</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-icon">📅</div>
+          <div class="dash-label">วันทั้งหมด</div>
+          <div id="dash-total-days" class="dash-value">—</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-icon">📆</div>
+          <div class="dash-label">สัปดาห์ทั้งหมด</div>
+          <div id="dash-total-weeks" class="dash-value">—</div>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <h2>📋 เวรครัวสัปดาห์นี้</h2>
+        <div id="dash-daily-week" class="mini-table-wrap"></div>
+      </div>
+
+      <div class="section-block">
+        <h2>🏠 ทำความสะอาดสัปดาห์นี้</h2>
+        <div id="dash-weekly-current" class="mini-table-wrap"></div>
+      </div>
+
+      <div class="reset-bar">
+        <button class="btn btn-danger" id="btn-reset-all">🔄 รีเซ็ตทุกอย่างและสร้างตารางใหม่</button>
+      </div>
+    </section>
+
+    <!-- DAILY -->
+    <section id="page-daily" class="page">
+      <div class="page-header">
+        <h1>เวรครัวรายวัน</h1>
+        <div class="header-actions">
+          <button class="btn btn-primary" id="btn-regen-daily">🎲 สร้างตารางใหม่</button>
+          <button class="btn btn-outline" id="btn-export-csv">📥 Export CSV</button>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <label>กรองเดือน:
+          <select id="month-filter">
+            <option value="">ทั้งหมด</option>
+            <option value="2026-06">มิถุนายน 2569</option>
+            <option value="2026-07">กรกฎาคม 2569</option>
+            <option value="2026-08">สิงหาคม 2569</option>
+            <option value="2026-09">กันยายน 2569</option>
+          </select>
+        </label>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-dot today-dot"></span>วันนี้</span>
+          <span class="legend-item"><span class="legend-dot past-dot"></span>ผ่านแล้ว</span>
+        </div>
+      </div>
+
+      <div id="daily-table-wrap" class="table-scroll"></div>
+    </section>
+
+    <!-- WEEKLY -->
+    <section id="page-weekly" class="page">
+      <div class="page-header">
+        <h1>ตารางทำความสะอาดรายสัปดาห์</h1>
+        <div class="header-actions">
+          <button class="btn btn-primary" id="btn-regen-weekly">🎲 สร้างตารางใหม่</button>
+        </div>
+      </div>
+      <div class="legend" style="margin-bottom:16px;gap:16px">
+        <span class="legend-item"><span class="legend-dot week-dot"></span>สัปดาห์นี้</span>
+        <span class="legend-item"><span class="legend-dot overdue-dot"></span>เลยกำหนด</span>
+        <span class="legend-item"><span class="legend-dot pending-dot"></span>รอดำเนินการ</span>
+      </div>
+      <div id="weekly-table-wrap"></div>
+    </section>
+
+    <!-- SUMMARY -->
+    <section id="page-summary" class="page">
+      <div class="page-header">
+        <h1>สรุปสถิติ</h1>
+      </div>
+      <div class="section-block">
+        <h2>🍳 เวรครัว — สถิติรายคน</h2>
+        <div id="summary-daily" class="table-scroll"></div>
+      </div>
+      <div class="section-block">
+        <h2>🏠 ทำความสะอาด — สถิติรายห้อง</h2>
+        <div id="summary-weekly" class="table-scroll"></div>
+      </div>
+      <div class="section-block">
+        <h2>📊 สถานะทำความสะอาดสัปดาห์</h2>
+        <div id="summary-status" class="table-scroll"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="app.js"></script>
+</body>
+</html>
