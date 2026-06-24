@@ -192,17 +192,12 @@ function buildDailyMiniTable(days) {
 }
 
 function buildWeeklyMiniTable(week) {
-  const allDone = appData.rooms.every(r => week.status[r] === 'ทำแล้ว');
   let html = '<table><thead><tr><th>ห้อง</th><th>โซน</th><th>สถานะ</th></tr></thead><tbody>';
   appData.rooms.forEach(r => {
     const od = isOverdue(week.weekEnd, week.status[r]);
     html += `<tr${od ? ' class="overdue-row"' : ''}><td><b>${r}</b></td><td>${getZoneBadge(week.assignments[r])}</td><td>${getStatusBadge(week.status[r])}${od ? ' ' + getOverduePill() : ''}</td></tr>`;
   });
-  html += '</tbody></table>';
-  if (allDone) {
-    html += `<div style="background:#D1FAE5;color:#065F46;border-radius:12px;padding:12px;text-align:center;font-size:15px;font-weight:700;margin-top:10px;">✅ ทำเสร็จแล้วทุกห้อง!</div>`;
-  }
-  return html;
+  return html + '</tbody></table>';
 }
 
 // ===== DAILY TABLE =====
@@ -250,6 +245,7 @@ function renderWeeklyTable() {
   const today = getToday();
   const rooms = appData.rooms;
   let html = '';
+
   for (const week of appData.weeklySchedule) {
     const isCurrent = isCurrentWeek(week.weekStart, week.weekEnd);
     const isPast = today > week.weekEnd;
@@ -272,7 +268,8 @@ function renderWeeklyTable() {
 
     rooms.forEach(room => {
       const od = isOverdue(week.weekEnd, week.status[room]);
-      const rowClass = od ? 'overdue-row' : (isCurrent && week.status[room] !== 'ทำแล้ว' ? 'pending-row' : '');
+      const isDone = week.status[room] === 'ทำแล้ว';
+      const rowClass = od ? 'overdue-row' : isDone ? '' : (isCurrent ? 'pending-row' : '');
       html += `<tr class="${rowClass}">
         <td><b>${room}</b>${od ? ' ' + getOverduePill() : ''}</td>
         <td>${getZoneBadge(week.assignments[room])}</td>
@@ -280,7 +277,7 @@ function renderWeeklyTable() {
           value="${week.actualDates[room] || ''}"
           data-week="${week.weekNum}" data-room="${room}" data-field="actualDate"
           onchange="updateWeekly(this)" /></td>
-        <td><input type="text" class="cell-input" style="min-width:140px"
+        <td><input type="text" class="cell-input" style="min-width:120px"
           placeholder="หมายเหตุ..."
           value="${week.notes[room] || ''}"
           data-week="${week.weekNum}" data-room="${room}" data-field="notes"
@@ -289,12 +286,37 @@ function renderWeeklyTable() {
     });
 
     html += `</tbody></table>
-        <div style="padding:16px">
-          ${allDone
-            ? `<div style="background:#D1FAE5;color:#065F46;border-radius:12px;padding:16px;text-align:center;font-size:18px;font-weight:700;">✅ ทำเสร็จแล้วทุกห้อง!</div>`
-            : `<button onclick="markAllDone(${week.weekNum})" style="width:100%;padding:16px;font-size:18px;font-weight:700;background:#10B981;color:#fff;border:none;border-radius:12px;cursor:pointer;">✅ ทำเสร็จแล้ว!</button>`
-          }
-        </div>
+
+        <!-- ปุ่มแยกห้อง -->
+        <div style="padding:12px 16px;display:flex;flex-direction:column;gap:10px;">`;
+
+    rooms.forEach(room => {
+      const isDone = week.status[room] === 'ทำแล้ว';
+      if (isDone) {
+        html += `<div style="display:flex;gap:8px;align-items:center;">
+          <div style="flex:1;background:#D1FAE5;color:#065F46;border-radius:10px;padding:12px 16px;text-align:center;font-size:15px;font-weight:700;">
+            ✅ ${room} — ทำเสร็จแล้ว!
+          </div>
+          <button onclick="markRoomUndone(${week.weekNum}, '${room}')"
+            style="padding:12px 14px;font-size:13px;font-weight:600;background:#FEE2E2;color:#991B1B;border:none;border-radius:10px;cursor:pointer;white-space:nowrap;">
+            ↩ ยกเลิก
+          </button>
+        </div>`;
+      } else {
+        html += `<button onclick="markRoomDone(${week.weekNum}, '${room}')"
+          style="width:100%;padding:14px;font-size:16px;font-weight:700;background:#10B981;color:#fff;border:none;border-radius:10px;cursor:pointer;">
+          ✅ ${room} — ทำเสร็จแล้ว!
+        </button>`;
+      }
+    });
+
+    if (allDone) {
+      html += `<div style="background:#059669;color:#fff;border-radius:10px;padding:12px;text-align:center;font-size:15px;font-weight:700;margin-top:4px;">
+        🎉 ทุกห้องเสร็จหมดแล้ว!
+      </div>`;
+    }
+
+    html += `</div>
       </div>
     </div>`;
   }
@@ -302,20 +324,31 @@ function renderWeeklyTable() {
   document.getElementById('weekly-table-wrap').innerHTML = html;
   setTimeout(() => {
     const cw = getCurrentWeek();
-    if (cw) { const el = document.getElementById(`week-card-${cw.weekNum}`); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    if (cw) {
+      const el = document.getElementById(`week-card-${cw.weekNum}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }, 100);
 }
 
-async function markAllDone(weekNum) {
+async function markRoomDone(weekNum, room) {
   const week = appData.weeklySchedule.find(w => w.weekNum === weekNum);
   if (!week) return;
-  for (const room of appData.rooms) {
-    week.status[room] = 'ทำแล้ว';
-    await api('/api/update-weekly', 'POST', { weekNum, room, field: 'status', value: 'ทำแล้ว' });
-  }
+  week.status[room] = 'ทำแล้ว';
+  await api('/api/update-weekly', 'POST', { weekNum, room, field: 'status', value: 'ทำแล้ว' });
   renderWeeklyTable();
   renderDashboard();
-  toast('บันทึกเสร็จแล้วทุกห้อง ✅');
+  toast(`${room} ทำเสร็จแล้ว ✅`);
+}
+
+async function markRoomUndone(weekNum, room) {
+  const week = appData.weeklySchedule.find(w => w.weekNum === weekNum);
+  if (!week) return;
+  week.status[room] = 'ยังไม่ทำ';
+  await api('/api/update-weekly', 'POST', { weekNum, room, field: 'status', value: 'ยังไม่ทำ' });
+  renderWeeklyTable();
+  renderDashboard();
+  toast(`${room} ยกเลิกเสร็จแล้ว ↩`);
 }
 
 async function updateWeekly(el) {
